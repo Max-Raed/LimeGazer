@@ -1,0 +1,217 @@
+<div class="ckeditor-html5-video" data-responsive="true" style="text-align: center;">
+<video controls="controls" controlslist="nodownload" height="1080" id="testID" onplay="openFullscreen();" scrolling="no" src="/upload/surveys/841528/files/S.mp4" style="max-width: 100%; height: auto;"> </video>
+</div>
+<script src="https://www.gstatic.com/firebasejs/7.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.7.0/firebase-storage.js"></script>
+
+<script>
+
+    var prediction = webgazer.getCurrentPrediction();
+  if (prediction) {
+      var x = prediction.x;
+      var y = prediction.y;
+  }
+          webgazer.setGazeListener(function(data, elapsedTime) {
+              var webgazerVideoContainer = document.getElementById('webgazerVideoContainer');
+              webgazerVideoContainer.style.display = 'none';
+              if (data == null) {
+                  return;
+              }
+              var xprediction = data.x; //these x coordinates are relative to the viewport
+              var yprediction = data.y; //these y coordinates are relative to the viewport
+            //console.log("xprediction:", xprediction);
+            //console.log("yprediction:", yprediction);
+            localStorage.setItem("GazePredictionX", xprediction);
+            localStorage.setItem("GazePredictionY", yprediction);
+          }).begin();
+</script>
+
+
+<script>
+ 
+   if ($(window).width() < 1700){
+   alert("Maximize your browser window. If it is already maximized, your display is unfortunately too small. FullHD is required. Please abort the study.");
+   	video.pause();
+ }
+  /* Get the element you want displayed in fullscreen mode (a video in this example):  */
+  var video = document.getElementById('testID');
+  video.muted = false;
+  var correct; 
+  var correctYes;
+  var correctNo;
+
+  var data = [];
+  var filename = "data";
+  var folder = "/folder/to/video";
+
+  const firebaseConfig = {
+  apiKey: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  projectId: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  storageBucket: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  messagingSenderId: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  appId: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  measurementId: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+};
+
+  firebase.initializeApp(firebaseConfig);
+
+
+  function initialize() { 
+    correct = document.getElementById("question111683");
+    correct.style.display = "none";
+    correctYes = document.getElementById('javatbd841528X8192X111683Y');
+    correctNo = document.getElementById('javatbd841528X8192X111683N');
+   
+    
+    		// Listeners on Yes/No radios to toggle the Next/Submit button
+		correctYes.addEventListener('click', function(){
+          	//console.log("click yes");
+			document.getElementById("ls-button-submit").disabled = false;
+            //submitbutton.attr('disabled', '');
+		});
+		correctNo.addEventListener('click', function(){
+          	//console.log("click no");
+            document.getElementById("ls-button-submit").disabled = true;
+            //submitbutton.attr('disabled', 'disabled');
+            alert("Please reload the page to be able to see the video.")
+		});
+  
+  } 
+  window.onload = initialize;
+  
+/* When the openFullscreen() function is executed, open the video in fullscreen.
+Note that we must include prefixes for different browsers, as they don't support the requestFullscreen method yet */
+function openFullscreen() {
+  if (video.requestFullscreen) {
+    video.requestFullscreen();
+  } else if (video.mozRequestFullScreen) { /* Firefox */
+    video.mozRequestFullScreen();
+  } else if (video.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    video.webkitRequestFullscreen();
+  } else if (video.msRequestFullscreen) { /* IE/Edge */
+    video.msRequestFullscreen();
+  }
+}
+
+  /* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.mozCancelFullScreen) { /* Firefox */
+    document.mozCancelFullScreen();
+  } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE/Edge */
+    document.msExitFullscreen();
+  }
+  
+  video.controls=false;
+}
+
+
+var supposedCurrentTime = 0;
+video.addEventListener('timeupdate', function() {
+  if (!video.seeking) {
+        supposedCurrentTime = video.currentTime;
+  }
+  if (!video.paused){
+  openFullscreen();
+    //checkFirstTimeStart = true;
+	}
+});
+  
+
+  
+// prevent user from seeking
+video.addEventListener('seeking', function() {
+  // guard agains infinite recursion:
+  // user seeks, seeking is fired, currentTime is modified, seeking is fired, current time is modified, ....
+  var delta = video.currentTime - supposedCurrentTime;
+  if (Math.abs(delta) > 0.01) {
+    //console.log("Seeking is disabled");
+    video.currentTime = supposedCurrentTime;
+  }
+});
+  
+  
+video.addEventListener('ended', function() {
+    try {
+        const csv = convertToCSV(data);
+        uploadCSVToFirebase(csv);
+    } catch (error) {
+        // Handle errors here
+    }
+
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.mozCancelFullScreen) { /* Firefox */
+        document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+        document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) { /* IE/Edge */
+        document.msExitFullscreen();
+    }
+
+    video.controls = false;
+    //document.getElementById("question32578").style.display = "none"; //video
+    //document.getElementById("question32577").style.display = "block";
+    correct.style.display = "block";
+
+    // What you want to do after the event
+    //closeFullscreen();
+    // reset state in order to allow for rewind
+    supposedCurrentTime = 0;
+});
+
+
+setInterval(function() {
+    if (!video.paused) {
+    
+    simulationTime = supposedCurrentTime; // Update simulationTime with the resolved current timestamp
+    var retrievedGazeX = localStorage.getItem("GazePredictionX");
+    var retrievedGazeY = localStorage.getItem("GazePredictionY");
+    var displayResX = window.screen.width;
+    var displayResY = window.screen.height;
+    
+    data.push({ simulationTime, retrievedGazeX, retrievedGazeY, displayResX, displayResY}); // Store data in the array
+    console.log(simulationTime, retrievedGazeX, retrievedGazeY, displayResX, displayResY);
+    }
+}, 100);
+
+
+function convertToCSV(data) {
+  const csvRows = [];
+  const headers = ['video_timestamp', 'gazeX', 'gazeY', 'displayResX', 'displayResY'];
+  csvRows.push(headers.join(';'));
+  
+  for (const row of data) {
+    const values = [
+      row.simulationTime.toFixed(1),
+      row.retrievedGazeX,
+      row.retrievedGazeY,
+      row.displayResX,
+      row.displayResY,
+    ];
+    csvRows.push(values.join(';'));
+  }
+  
+  return csvRows.join('\n');
+}
+
+// Upload CSV file
+function uploadCSVToFirebase(csv) {
+  const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const storageRef = firebase.storage().ref();
+  const fileRef = storageRef.child(folder + filename);
+  
+  fileRef.put(csvBlob)
+    .then(function(snapshot) {
+      console.log('CSV file uploaded to Firebase Storage successfully.');
+    })
+    .catch(function(error) {
+      console.error('Error uploading CSV file to Firebase Storage:', error);
+    });
+}
+
+</script>
