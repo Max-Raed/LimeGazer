@@ -56,7 +56,13 @@ You can now access the Webgazer API using the `webgazer` keyword for any questio
 </script>
 ```
 
-This script starts Webgazer and stores the prediction in the `localStorage`. This method allows other scripts in the same subgroup to access the data.
+This script starts Webgazer and stores the prediction in the `localStorage`. This method allows other scripts in the same subgroup to access the data:
+
+```
+      var retrievedGazeX = localStorage.getItem("GazePredictionX");
+      var retrievedGazeY = localStorage.getItem("GazePredictionY");
+```
+you can access the gaze data at any time.
 
 ---
 
